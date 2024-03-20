@@ -1,0 +1,4 @@
+DenunciasTotalesxCategoria =
+VAR categoria = categoriaXcategoria = SUM(BI_ACCIDENTES[CantidadCategoriax])
+VAR categoriaTotal = CALCULATE(SUM(BI_ACCIDENTES[CantidadCategoriax]), ALL(BI_ACCIDENTES[Categoria]))
+RETURN categoriaTotal / 12

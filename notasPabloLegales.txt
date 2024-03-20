@@ -1,0 +1,45 @@
+
+
+10/10/2023 Modificación Legales
+
+Agregar mails a cada cc 👍
+
+Bajas de Personal
+
+
+
+Cambiar nombre del campo "Datos baja" por Datos Pedido de Baja 👍
+Ordenar la vista de búsqueda de empleado: Nombre - Legajo - Centro de costos 
+Cambiar la busqueda por defecto del empleado por el legajo 👍
+Ocultar el campo Originante 👍
+Controlar el email de Bajas, hacer un correo para todos por igual en copia 👍
+
+
+BI Bajas de personal
+Cambiar la columna Categoría (trae el puesto) por categoría de calipso 👍
+
+
+Intercambio Epistolar
+
+Si el motivo del intercambio es Notificación de desvinculación o Fin PP , generar una baja automáticamente
+
+
+
+BI Intercambios Epistolares
+
+Agregar la columna "Originante" (remitente) despues de TLC/CD 👍
+Agregar la columna Motivo antes de fecha de envió  👍
+Modificar el margen que tiene entre la tabla y la grilla  👍
+
+BI Emitidos
+Reparar Márgenes 👍
+
+
+Transacción de Demanda
+
+Cambiar el texto "Extra Judicial" por "Extrajudicial" 👍
+Validar porque esta dando error al seleccionar un empleado 👍
+Habilitar para que se pueda buscar el empleado por legajo 👍
+Validar la cantidad de caracteres cuando se ingresa un CBU
+Ocultar la solapa "Transacciones Apuntantes de los Items"
+Modificar el campo de Empleado en la vista de demandas para que refleje el empleado que realiza la demanda 👍

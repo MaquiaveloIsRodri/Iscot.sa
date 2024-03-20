@@ -1,0 +1,49 @@
+Tr-Bajas:
+Validación antes enviar Mail 👍
+
+Intercambio Epistolar
+Al crear Baja desde intercambio no validar la fecha baja 👍
+
+Tr-Demandas:
+
+Validar todos los campos que traigamos desde el vinculoTr
+Estado de la demanda ITC (Activa - Cerrada(Sentencia - acuerdo) )  👍
+controlar transciciones de flag
+Link(documentacion) - Monto debajo de "demanda" 👍
+Completar datos en pestana "Bajas" 👍
+FECHA BAJA
+MOTIVO BAJA
+MOTIVO AFIP
+OBSERVACIONES 
+
+
+Generar item transaccional
+    -tipo de documento, comprobante, link de pago LISTA EN DEMANDA
+    Talon de pago -> comprobante -> link de pago (Aportes iniciales)
+Hacer FX para enviar Mail los "Pagos" a Tefi
+
+Tr-Acuerdos:
+
+NO TRAE LOS DATOS AL SELECCIONAR LA DEMANDA (FECHA BAJA - motivo baja) 👍
+Poner en pesos (Float) a "Monto Acuerdo" 👍
+Todos los Floats con dos decimales 👍
+En el item transaccional "Detalle" -> RENOMBRAR "comprobante" 👍
+
+
+
+
+
+    1- itc -> tipo comprobante legales
+    2- crear ud_comprobantesLegales
+        BO - ITC TIPO COMPROBANTE LEGALES - TIPOCOMPROBANTE
+        STRING - LINKPAGO
+        STRING - COMPROBANTE
+    3- EN UD _DEMANDA AGREGAR EXTENSION TIPO LISTA DE CONTENCION
+        COMPROBANTES - APUNTAR A UD_COMPROBANTESLEGALES - VISUALIZA GRILLA SI
+
+
+
+publicar como grilla
+    - tipo de documento
+    - link de pago LISTA EN DEMANDA
+    - comprobante
