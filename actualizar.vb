@@ -1,66 +1,90 @@
-'Fx Cambiar Centro de Costos
-Sub Main
+sub main
 	stop
+	set xVisualVar = VisualVarEditor("Cambiar Fecha de Entrega Real")
+	call AddVarDate(xVisualVar, "00FECHAENTREGAREAL", "Nueva Fecha", "Parámetros", Date)
+	aceptar = ShowVisualVar(xVisualVar)
 
-    'view de motivos
-    Set xView = NewCompoundView(Self, "ITEMTIPOCLASIFICADOR", Self.Workspace, Nil, True)
-    xView.AddFilter(NewFilterSpec(xView.ColumnFromPath("ACTIVESTATUS"), " = ", "0"))
-    xView.AddFilter(NewFilterSpec(xView.ColumnFromPath("BO_PLACE"), " = ", "{3A29AA3D-DA9D-419D-B305-5FC3C50171C3}"))
-    xView.NoFlushBuffers = True
-    xView.AddBOCol("NOMBRE")
-    xView.ColumnFromPath("NOMBRE")
-    Set xContainerMotivos = NewContainer()
-    xContainerMotivos.Add (xView)
+    if aceptar then
+        for each xOc in container
+			Self.BOEXTENSION.FechaEntregaReal = nuevaFecha
+			call WorkSpaceCheck(self.workspace)
+        next
+    end if
 
-
-    Set xCCActual = Self.centrocostos
-    Set xVisualVar = VisualVarEditor("Cambio Centro de Costos")
-
-    Call AddVarObj(xVisualVar,  "1_ccActual" ,  "Centro de costos Actual", "Cambio", Self.centrocostos ,getContainer("CENTROCOSTOS", Self.WorkSpace), Self.WorkSpace )
-    Call AddVarDate(xVisualVar, "2_fechaHasta", "Fecha Hasta", "Cambio",now())
-    Call AddVarObj(xVisualVar,  "3_ccNuevo",    "Centro de costos Nuevo", "Cambio", nothing,GetContainer("CENTROCOSTOS", Self.WorkSpace), Self.WorkSpace )
-    Call AddVarObj(xVisualVar,  "4_motivo",     "Motivo", "Cambio", nothing ,xContainerMotivos, Self.WorkSpace )
+	MsgBox "Cambio de fecha de entrega real finalizado!!.", 64, "Informacion"
+end sub
 
 
-    If Not ShowVisualVar(xVisualVar) Then Exit Sub
-
-    fechaHasta      =   CDate(GetValueVisualVar(xVisualVar, "2_fechaHasta", "Cambio"))
-    Set ccActual    =   GetValueVisualVar(xVisualVar, "1_ccActual", "Cambio")
-    Set ccNuevo     =   GetValueVisualVar(xVisualVar, "3_ccNuevo", "Cambio")
-    Set motivo      =   GetValueVisualVar(xVisualVar, "4_motivo", "Cambio")
 
 
-    If ccNuevo Is Nothing Then
-        MsgBox "No seleccionó Centro de Costos.", 48, "Aviso"
-        exit sub
-    End If
-    If motivo Is Nothing Then
-        MsgBox "No seleccionó Motivo de cambio", 48, "Aviso"
-        exit sub
-    End If
 
 
-	set oEmpleado = getEmpleadoDeUsuario( nombreusuario(), self.workspace)
-    set xHCc = crearbo("UD_HISTORICOCELULAR",self)
-    xHCc.CELULAR    = self 'Asignamos el celular
-    xHCc.originante = oEmpleado 'Asignamos el originate del cambio
-    xHCc.CENTROCOSTOSANTERIOR = ccActual 'Asigno el cc Anterior
-    xHCc.CENTROCOSTOSNUEVO    = ccNuevo 'Asignamos un nuevo cc
-    xHCc.FECHAHASTA = fechaHasta 'Fecha hasta que tuvo activo
-    xHCc.MOTIVO = motivo 'Asignamos el motivo
+' creado: 11/06/2013 - Jose Fantasia.
+' MU Cambiar Fecha de Entrega Real.
+sub main
+	stop
+	set xVisualVar = VisualVarEditor("Cambiar Fecha de Entrega Real")
+	call AddVarDate(xVisualVar, "00FECHAENTREGAREAL", "Nueva Fecha", "Parámetros", Date)
+	aceptar = ShowVisualVar(xVisualVar)
+	if aceptar then
+		nuevaFecha = CDate(Int(GetValueVisualVar(xVisualVar, "00FECHAENTREGAREAL", "Parámetros")))
+		' AGREGADO: 17/01/2014 - Jose Fantasia.
+		res = MsgBox("¿Desea hacer un cambio masivo de fechas?", 292, "Fecha Entrega REAL")
+		if res = 6 then
+			set xVisualVarOC = VisualVarEditor("ORDENES ENTRE FECHAS")
+			call AddVarDate(xVisualVarOC, "00FECHADESDE", "Fecha Desde", "Parámetros", Date)
+			call AddVarDate(xVisualVarOC, "05FECHAHASTA", "Fecha Hasta", "Parámetros", Date)
+			aceptar = ShowVisualVar(xVisualVarOC)
+			if aceptar then
+				fechaDesde = CDate(Int(GetValueVisualVar(xVisualVarOC, "00FECHADESDE", "Parámetros")))
+				fechaHasta = CDate(Int(GetValueVisualVar(xVisualVarOC, "05FECHAHASTA", "Parámetros")))
+				if fechaDesde > fechaHasta then
+					MsgBox "La Fecha Desde NO puede ser Mayor que la Fecha Hasta.", 48, "Aviso"
+					exit sub
+				end if
+				
+				set xContainer = NewContainer()
+				xContainer.Add(ObtenerView(fechaDesde, fechaHasta))
+				set xSeleccionados = SelectViewItems(Self.Workspace, "TRORDENCOMPRA", xContainer)
+				if xSeleccionados.Size <= 0 then
+					MsgBox "No seleccionó ningún ítem.", 48, "Aviso"
+					exit sub
+				end if
+				
+				for each xItemSel in xSeleccionados
+					xItemSel.BO.BOEXTENSION.FechaEntregaReal = nuevaFecha
+					call WorkSpaceCheck(self.workspace)
+				next
+			else
+				exit sub
+			end if
+		else
+			Self.BOEXTENSION.FechaEntregaReal = nuevaFecha
+			call WorkSpaceCheck(self.workspace)
+		end if
+		MsgBox "Fecha(s) Actualizadas!!.", 64, "Información"
+	end if
+end sub
 
-    self.CENTROCOSTOS = ccNuevo 'Le asignamos el nuevo CC al dispositivo
-
-    xMensaje = "¿Esta seguro de cambiar el CC de este dispositivo?"
-
-    If MsgBox(xMensaje,36,"Pregunta") = 6 Then
-        if self.workspace.intransaction Then self.workspace.commit
-	  self.HISTORICOCELULARES.add(xHCc)
-        call MsgBox("Se cambio el cc correctamente.",64,"Información")
-    Else
-        self.workspace.rollback
-        Call MsgBox("Proceso cancelado",64,"Información")
-        Exit Sub
-    End If
-
-End Sub
+function ObtenerView(pFechaDesde, pFechaHasta)
+	set xView = NewCompoundView(Self, "TRORDENCOMPRA", Self.Workspace, nil, true)
+	xView.AddJoin(NewJoinSpec(xView.ColumnFromPath("CENTROCOSTOS"), NewColumnSpec("CENTROCOSTOS", "ID", ""), false))
+	xView.AddJoin(NewJoinSpec(xView.ColumnFromPath("BOEXTENSION"), NewColumnSpec("UD_ORDENCOMPRA", "ID", ""), false))
+	xView.AddJoin(NewJoinSpec(xView.ColumnFromPath("FLAG"), NewColumnSpec("FLAG", "ID", ""), false))
+	xView.AddFilter(NewFilterSpec(xView.ColumnFromPath("FLAG"), " <> ", "{C10833F4-5E1E-47DA-803E-5FBF135BEA51}"))		' Anulado.
+	xView.AddFilter(NewFilterSpec(xView.ColumnFromPath("ESTADO"), " <> ", "N"))
+	xView.AddFilter(NewFilterSpec(xView.ColumnFromPath("FECHAACTUAL"), " >= ", pFechaDesde))
+	xView.AddFilter(NewFilterSpec(xView.ColumnFromPath("FECHAACTUAL"), " <= ", pFechaHasta))
+	xView.AddBOCol("NOMBRE").Caption													= " "
+	xView.AddBOCol("FLAG").Caption														= " "
+	xView.AddBOCol("NOMBRE").Caption													= "Transacción"
+	xView.AddBOCol("NOMBREDESTINATARIO").Caption 										= "Proveedor"
+	xView.AddColumn(NewColumnSpec("CENTROCOSTOS", "NOMBRE", "")).Caption 				= "Centro Costos"
+	xView.AddColumn(NewColumnSpec("UD_ORDENCOMPRA", "FECHAENTREGAREAL", "")).Caption 	= "Fecha Ent. Real"
+	xView.AddBOCol("NOTA").Caption 					   	 								= "Observaciones"
+	xView.AddBOCol("ESTADO").Caption 					   	 							= "Estado"
+	xView.AddColumn(NewColumnSpec("FLAG", "DESCRIPCION", "")).Caption					= "Flag"
+	xView.AddBOCol("USUARIO").Caption					 								= "Usuario"
+	xView.AddOrderColumn(NewOrderSpec(xView.ColumnFromPath("NUMERODOCUMENTO"), true))
+	set ObtenerView = xView
+end function
