@@ -8,7 +8,7 @@ sub main
 		   Exit Sub		
         Else
             If xPic.flag.id = "{77A2D825-05AF-498A-B91E-814149A20AF0}" then ' cerrada
-                Call Msgbox("La Baja " & xBaja.numerodocumento & " ya fué cerrada.",64, "Información")
+                Call Msgbox("La Baja " & xPic.nombre & " ya fué cerrada.",64, "Información")
                 Exit sub
             End If
 
