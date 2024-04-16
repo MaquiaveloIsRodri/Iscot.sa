@@ -8,8 +8,7 @@ sub main
 	xTrNueva.NOTA				            = Self.NOTA
 	xTrNueva.ORIGINANTE		                = Self.ORIGINANTE
     xTrNueva.COTIZACION				        = Self.COTIZACION
-    'xTrNueva.DESTINO				        = Self.DESTINO
-    'xTrNueva.IMPORTE		                = Self.IMPORTE'REVISAR
+
 	xTrNueva.CENTROCOSTOS		            = Self.CENTROCOSTOS
     xTrNueva.TOTALCANCELAR		            = Self.TOTALCANCELAR
 	xTrNueva.BOExtension.MEDIOPAGO			= Self.BOExtension.MEDIOPAGO
