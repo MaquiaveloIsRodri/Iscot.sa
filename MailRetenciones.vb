@@ -11,14 +11,14 @@ sub main
 	' Control Email de Usuario.
 	set oUsuario 		= ExisteBO(Self, "USUARIO", "NOMBRE", NombreUsuario(), nil, true, false, "=")
 	if oUsuario is nothing then
-		MsgBox 	"Su Usuario no estÃ¡ sincronizado en Calipso." & vbNewLine & _
-				"Si continÃºa NO recibirÃ¡ la copia del correo enviado." & vbNewLine & _
+		MsgBox 	"Su Usuario no esta sincronizado en Calipso." & vbNewLine & _
+				"Si continua NO recibira la copia del correo enviado." & vbNewLine & _
 				"Informe a Sistemas.", 48, "Aviso"
 	else
 		email_de		= Trim(oUsuario.DIRECCIONELECTRONICA)
 		if email_de = "" then
-			MsgBox 	"Usuario sin correo electrÃ³nico." & vbNewLine & _
-					"Si continÃºa NO recibirÃ¡ la copia del correo enviado." & vbNewLine & _
+			MsgBox 	"Usuario sin correo electronico." & vbNewLine & _
+					"Si continua NO recibira la copia del correo enviado." & vbNewLine & _
 					"Informe a Sistemas.", 48, "Aviso"
 		end if
 	end if
@@ -47,7 +47,7 @@ sub main
 	end if
 
 	' Correos del Proveedor.
-	MsgBox "Seleccione el E-mail del Proveedor o escrÃ­balo en el campo 'Para'.", 64, "InformaciÃ³n"
+	MsgBox "Seleccione el E-mail del Proveedor o escribalo en el campo 'Para'.", 64, "InformaciÃ³n"
 	email_para = ""
 	set xViewP = NewCompoundView(Self, "DIRECCIONELECTRONICA", Self.Workspace, nil, true)
 	xViewP.AddFilter(NewFilterSpec(xViewP.ColumnFromPath("BO_PLACE"), " = ", Self.Destinatario.EnteAsociado.DireccionesElectronicas.ID))
@@ -128,12 +128,16 @@ sub main
 		if pdf_listo then
 			SendDebug " >>> ENVIANDO PAGO: " & Self.NumeroDocumento
 			email_asunto	= "PAGO #" & Self.NumeroDocumento & " - ORDEN"
-			xAdjunto = sFileName2
+			if xAdjunto <> "" then
+            	xAdjunto = xAdjunto&";"&sFileName2
+			else
+				xAdjunto = sFileName2
+			end if
 			'if oFS.FileExists(sFileName2) then
 			'	oFS.DeleteFile(sFileName2)
 			'end if
 		else
-			SendDebug " >>> FallÃ³ el PDF PAGO: " & Self.NumeroDocumento
+			SendDebug " >>> Fallo el PDF PAGO: " & Self.NumeroDocumento
 		end if
 	end if
 
@@ -162,13 +166,17 @@ sub main
 		if pdf_listo then
 			SendDebug " >>> ENVIANDO RET GAN PAGO: " & Self.NumeroDocumento
 			email_asunto	= "PAGO #" & Self.NumeroDocumento & " - RET. GANANCIAS"
-            xAdjunto = xAdjunto&";"&sFileName2
+            if xAdjunto <> "" then
+            	xAdjunto = xAdjunto&";"&sFileName2
+			else
+				xAdjunto = sFileName2
+			end if
 
 			'if oFS.FileExists(sFileName2) then
 			'	oFS.DeleteFile(sFileName2)
 			'end if
 		else
-			SendDebug " >>> FallÃ³ el PDF RET GAN PAGO: " & Self.NumeroDocumento
+			SendDebug " >>> Fallo el PDF RET GAN PAGO: " & Self.NumeroDocumento
 		end if
 	end if
 
@@ -198,7 +206,11 @@ sub main
 		if pdf_listo then
 			SendDebug " >>> ENVIANDO RET IIBB ARBA PAGO: " & Self.NumeroDocumento
 			email_asunto	= "PAGO #" & Self.NumeroDocumento & " - RET. IIBB ARBA"
+			if xAdjunto <> "" then
             	xAdjunto = xAdjunto&";"&sFileName2
+			else
+				xAdjunto = sFileName2
+			end if
 			'if oFS.FileExists(sFileName2) then
 			'	oFS.DeleteFile(sFileName2)
 			'end if
@@ -234,7 +246,11 @@ sub main
 		if pdf_listo then
 			SendDebug " >>> ENVIANDO RET IIBB STA FE PAGO: " & Self.NumeroDocumento
 			email_asunto	= "PAGO #" & Self.NumeroDocumento & " - RET. IIBB STA. FE"
-			xAdjunto = xAdjunto&";"&sFileName2
+			if xAdjunto <> "" then
+            	xAdjunto = xAdjunto&";"&sFileName2
+			else
+				xAdjunto = sFileName2
+			end if
 
 			'if oFS.FileExists(sFileName2) then
 			'	oFS.DeleteFile(sFileName2)
@@ -244,17 +260,15 @@ sub main
 		end if
 	end if
 	
-    If xAdjunto <> ";" Then 
+    If xAdjunto <> "" Then 
 	    xAdjunto = Right(xAdjunto, Len(xAdjunto)-1)
 		Call EnviarEmailSinMensajeAdjuntos(self, email_para & "; " & email_de, xSubject, email_cuerpo, xAdjunto)
 	Else
 		MsgBox "No se pudo enviar ningun Comprobante", 16, "Error"
 		Exit Sub
 	End If
-		
 
-
-	MsgBox "Proceso Finalizado!!.", 64, "InformaciÃ³n"
+	MsgBox "Proceso Finalizado!!.", 64, "Informacion"
 end sub
 
 function Esperar(Tiempo)
