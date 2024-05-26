@@ -101,9 +101,9 @@ Sub Main
 
             If Not ShowVisualVar(xVisualVarCc) Then Exit Sub
 
-            fechaHasta      =   CDate(GetValueVisualVar(xVisualVar, "2_fechaHasta", "Cambio"))
-            Set ccActual    =   GetValueVisualVar(xVisualVar, "1_ServicioActual", "Cambio")
-            Set ccNuevo     =   GetValueVisualVar(xVisualVar, "3_ServicioNuevo", "Cambio")
+            fechaHasta              =   CDate(GetValueVisualVar(xVisualVar, "2_fechaHasta", "Cambio"))
+            Set xServicioActual     =   GetValueVisualVar(xVisualVar, "1_ServicioActual", "Cambio")
+            Set xServicioNuevo      =   GetValueVisualVar(xVisualVar, "3_ServicioNuevo", "Cambio")
 
 
             set oEmpleado = getEmpleadoDeUsuario( nombreusuario(), self.workspace)
@@ -114,24 +114,21 @@ Sub Main
             xHCc.FECHAHASTA = fechaHasta 'Fecha hasta que tuvo activo
 
             ' Validamos como si es nothing
-            If ccNuevo Is Nothing Then
+            If xServicioNuevo Is Nothing Then
 
                 xMensaje = "¿Estas seguro de quitar el servicio asignado?"
 
                 If MsgBox(xMensaje,36,"Pregunta") = 6 Then
-                    xHCc.CENTROCOSTOSNUEVO    = nothing
+                    xHCc.SERVICIONUEVO    = nothing
                     exit sub
                 End If
-
-            xHCc.CENTROCOSTOSNUEVO    = ccNuevo 'Asignamos un nuevo cc
-            self.stock = false
-            self.CENTROCOSTOS = ccNuevo 'Le asignamos el nuevo CC al dispositivo
+            end if
 
             xMensaje = "¿Esta seguro de cambiar el CC de este dispositivo?"
 
             If MsgBox(xMensaje,36,"Pregunta") = 6 Then
                 if self.workspace.intransaction Then self.workspace.commit
-                self.HISTORICOCELULARES.add(xHCc)
+                self.HISTORICOCELULAR.add(xHCc)
                 call MsgBox("Se cambio el cc correctamente.",64,"Información")
             Else
                 self.workspace.rollback
