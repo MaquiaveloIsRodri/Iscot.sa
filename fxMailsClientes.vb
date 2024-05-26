@@ -1,170 +1,184 @@
+' 28/04/2022
+' MU: Factura Enviar varias en 1 mail.
 sub main
+	stop
 
-    Stop
-    'Container de clientes
-    set xVisualVar = VisualVarEditor("Seleccione al cliente")
-    Set xView = NewCompoundView(Self, "CLIENTE", Self.Workspace, Nil, False)
-    xView.AddJoin(NewJoinSpec(NewColumnSpec("CLIENTE", "ENTEASOCIADO", ""), NewColumnSpec("PERSONA", "ID", ""), false))
-	xView.AddFilter(NewFilterSpec(xView.ColumnFromPath("ACTIVESTATUS"), " = ", "0"))
-	xView.AddColumn(NewColumnSpec("PERSONA", "NOMBRE", ""))
+	' Correo Usuario.
+	set xUsuario = ExisteBO(Self, "USUARIO", "NOMBRE", NombreUsuario, nil, true, false, "=")
+	if xUsuario is nothing then
+		MsgBox 	"Su Usuario no está sincronizado en Calipso." & vbNewLine & _
+				"Si continúa NO recibirá la copia del correo enviado." & vbNewLine & _
+				"Informe a Sistemas.", 48, "Aviso"
+	end if
+	correoUsuario = Trim(xUsuario.DIRECCIONELECTRONICA)
+	if correoUsuario = "" then
+		MsgBox 	"Usuario sin correo electrónico." & vbNewLine & _
+				"Si continúa NO recibirá la copia del correo enviado." & vbNewLine & _
+				"Informe a Sistemas.", 48, "Aviso"
+	end if
+	
+	' Ordenes de compra.
+	set xContainerOC = NewContainer()
+	xContainerOC.Add(ViewTROC())
+	set xSelTROC = SelectViewItems(Self.Workspace, "OC de " & Self.Destinatario.EnteAsociado.Nombre, xContainerOC)
+	
+    if xSelTROC.Size <= 0 then
+		MsgBox "No seleccionó ningun comprobante.", 48, "Aviso"
+		exit sub
+	end if
+	
+	' Correos a enviar.
+	correos = ""
+	set xContainer = NewContainer()
+	xContainer.Add(ObtenerView())
+	set xSeleccionados = SelectViewItems(Self.Workspace, "Correos de " & Self.Destinatario.EnteAsociado.Nombre, xContainer)
+	for each xCorreo in xSeleccionados
+		correos = correos & xCorreo.BO.EMAIL & "; "
+	next
+    
+	' Cuerpo E-mail.
+    cuerpoEmail = ""
+    cuerpoEmail = "Estimados," & vbCrLf _
+                & "                      Buenos días. Les hacemos llegar la/s " & comprobante & "/s correspondiente/s al servicio de limpieza." & vbCrLf & vbCrLf _
+                & "Por favor, confirmar correcta recepcion." & vbCrLf _
+                & "Ante cualquier duda o inconveniente, no duden en comunicarse con nosotros." & vbCrLf & vbCrLf _
+                & "Desde ya muchas gracias." & vbCrLf _
+                & "Saludos Cordiales."
 
-    Set xContainerCustomer = NewContainer()
-    xContainerCustomer.Add (xView)
+	
+    ' VisualVar.
+	set xVisualVar = VisualVarEditor("ENVIAR MULTIPLES COMPROBANTES POR MAIL")
+	call AddVarString(xVisualVar, "00CORREOS", "Para:", "Datos", correos)
+	call AddVarMemo(xVisualVar, "10CUERPO", "Cuerpo Email:", "Datos", cuerpoEmail)
+	aceptar = ShowVisualVar( xVisualVar )
+	if not aceptar then	exit sub
+	
+	correos		= Trim(GetValueVisualVar(xVisualVar, "00CORREOS", "Datos"))
+	cuerpoEmail	= GetValueVisualVar(xVisualVar, "10CUERPO", "Datos")
+	
+    if correos = "" then
+		MsgBox "No indicó las Direcciones de Correo.", 48, "Aviso"
+		exit sub
+	end if
+	
+	auxPDF = "ordencompra-" & NombreUsuario()
 
-    Call AddVarObj(xVisualVar,  "00Cliente", "Cliente", "Parametros:", nothing ,xContainerCustomer, Self.WorkSpace )
-
-	accept = ShowVisualVar(xVisualVar)
-	if not accept then exit sub
-
-
-    set customer = GetValueVisualVar( xVisualVar, "00Cliente", "Parametros:" )
-
-    ' Si no se encuentra el cliente sale de la funcion
-    if customer is nothing then
-        MsgBox "No selecciona un cliente para enviar el mail.", 48, "Aviso"
-        exit sub
-    end if
-
-	set xCon = CreateObject("adodb.connection")
-	xCon.ConnectionString 	= StringConexion("calipso", Self.Workspace)
-	xCon.ConnectionTimeout 	= 150
-
-	set xRs = RecordSet(xCon, "select top 1 * from producto")
-	xRs.Close
-	xRs.ActiveConnection.CommandTimeout = 0
-    dayFilter = Year(now) & Right("0" & Month(now), 2) & Right("0" & Day(now), 2)
-    ' Obtenemos la liberacion de las facturas vencidas
-    xRs.Source = "exec SP_Cliente_ACobrar_Vencidas_PorCliente '20150131', '" & dayFilter & "', '" & customer.denominacion & "'"
-	xRs.Open
-
-    ' Si no tenemos comprobantes, notificamos
-    if xRs.EOF = true then 
-        MsgBox "El cliente no debe ninguna factura.", 48, "Aviso"
-        exit sub
-    end if
-
-
-    items = ""
-    Set xFSO 		= CreateObject("Scripting.FileSystemObject")
-    Set xArchivo    = xFSO.OpenTextFile("C:\util\html\email-FacturasVencidas.html")
+	
+	set fs 			= CreateObject("Scripting.FileSystemObject")
+	set Impresoras 	= NewDic( )
+	call RegistrarObjeto( Impresoras, "Bullzip PDF Printer", nil )
+	
+	' Enviar correos.
+	call ProgressControl(Self.Workspace, "ENVIANDO Comprobantes..." , 0, 10)
+	
+	pdfsMal = ""
+    xSubject	= comprobante
+    xBody		= cuerpoEmail
+    xCorreos	= correos & "; " & correoUsuario
     xAdjunto = ""
-    htmlBody        = xArchivo.readAll()
+	for each xCpte in xSelTROC
 
-    do while not xRs.EOF
-        items = items & "<tr>"
-	    items = items & "<td>"& xRs("Comprobante").Value & "</td>"
-	    items = items & "<td>"& xRs("Saldo").Value & "</td>"
-	    items = items & "</tr>"
-        sFileName2 = selectModel(xRs("Comprobante").Value)
-        xAdjunto 	= xAdjunto&";"&sFileName2
-	    xRs.MoveNext
-    loop
+		call ProgressControlAvance(Self.Workspace, "Enviando..." & comprobante & vbNewLine & "OC" & xCpte.BO.NumeroDocumento)
 
-    xSubject = "[NOTIFICACION COBRANZAS]" & Date()
-    xBody    = ""
-    xcorreo = "rodrigofierrro@gmail.com"
-    htmlBody = replace(htmlBody,"xItems" , items)
-    htmlBody = replace(htmlBody,"xCliente" , customer.denominacion)
-    xAdjunto = Right(xAdjunto, Len(xAdjunto)-1)
-    call EnviarEmailSinMensajeAdjuntos(self, xcorreo , xSubject , xBody, xAdjunto)
-    call enviar_aviso_sinmsg(self, xcorreo , xSubject, xBody, xadjunto,htmlBody)
+		sFileName 	= "C:\util\pdf\" & auxPDF & ".pdf"
+		sFileName2 	= "C:\util\pdf\OC-" & xCpte.BO.NumeroDocumento & ".pdf"
+		
+        if fs.FileExists(sFileName) then
+			fs.DeleteFile(sFileName)
+		end if
+		if fs.FileExists(sFileName2) then
+			fs.DeleteFile(sFileName2)
+		end if
 
+        reporte = "Orden de Compra"
+		
+		call PrintBO( xCpte.BO, reporte , Impresoras )
+		a = Esperar(3)
 
+		EstaPDF = false
+		for b = 1 to 20
+			if fs.FileExists(sFileName) then
+				EstaPDF = true
+				sFileName2 	= "C:\util\pdf\OC-" & xCpte.BO.NumeroDocumento & ".pdf"
+				fs.MoveFile sFileName, sFileName2
+				exit for
+			else
+				a = Esperar(3)
+			end if
+		next
+		
+		if EstaPDF then
+			xAdjunto 	= xAdjunto&";"&sFileName2
+		else
+			pdfsMal = pdfsMal & " - " & xCpte.BO. NumeroDocumento & vbNewLine
+		end if
+
+        set xMedio						= InstanciarBO("{85F05446-DD2C-421B-B20D-2A3F4B680EEE}", "ITEMTIPOCLASIFICADOR", Self.Workspace)
+        call WorkSpaceCheck(xCpte.BO.Workspace)
+
+	next
+
+    If xAdjunto <> "" Then 
+	   xAdjunto = Right(xAdjunto, Len(xAdjunto)-1)
+	   Call EnviarEmailSinMensajeAdjuntos(self, xCorreos, xSubject, xBody, xAdjunto)
+	Else
+		MsgBox "No se pudo enviar ningún Comprobante", 16, "Error"
+		Exit Sub
+	End If
+		
+	if pdfsMal <> "" then
+		MsgBox "Algunos Comprobantes no se enviaron:" & vbNewLine & pdfsMal, 16, "Error"
+		exit sub
+	end if
+
+	set fs = nothing
+	call ProgressControlFinish(Self.Workspace)
 end sub
 
-' Selecciona segun lo que obtengamos en la consulta
-function selectModel(Voucher)
-    Select Case true
-        Case InStr(Voucher, "FaVen") > 0 'Entra si tiene dicha FaVen "Factura venta"
-            'instanciamos las facturas
-            set FaVen = ExisteBo(Self, "TRFACTURAVENTA", "NOMBRE", Voucher, nil, true, false, "=")
-            auxPDF = "ordencompra-" & NombreUsuario()
-
-            if FaVen.BOEXTENSION.TipoComprobante.Nombre = "A" then
-                report 	= "Factura de Venta A-"
-                aux_type 	= "FA-A-"
-
-                'mandamos a generar los pdf
-                selectModel = printVoucher(FaVen,report , aux_type,auxPDF)
-            else
-                report 	= "Factura de Venta B-"
-                aux_type 	= "FA-B-"
-
-                'mandamos a generar los pdf
-                selectModel = printVoucher(FaVen,report,aux_type,auxPDF)
-	        end if
-
-
-        Case InStr(Voucher, "NoCrVe") > 0 'Entra si tiene dicha NoCrVe "Nota credito venta"
-            set NoCrVe = ExisteBo(Self, "TRCREDITOVENTA", "NOMBRE", Voucher, nil, true, false, "=")
-           auxPDF = "ordencompra-" & NombreUsuario()
-
-            if NoCrVe.BOEXTENSION.TipoComprobante.Nombre = "A" then
-                report 	= "Credito de Venta A"
-                aux_type 	= "NC-A-"
-
-                'mandamos a generar los pdf
-                selectModel = printVoucher(NoCrVe,report,aux_type,auxPDF)
-            else
-                report 	= "Credito de Venta B"
-                aux_type 	= "NC-B-"
-
-                'mandamos a generar los pdf
-                selectModel = printVoucher(NoCrVe,report,aux_type,auxPDF)
-	        end if
-        case Else
-            MsgBox "Contactarse con sistema, ya que el comprobante no pudo ser procesado", 64, "InformaciÃƒÂ³n"
-		end select
+function Esperar(Tiempo)
+	ComienzoTiempo = Timer 
+	FinTiempo = ComienzoTiempo + Tiempo
+	do while FinTiempo > Timer
+		if ComienzoTiempo > Timer then 
+			FinTiempo = FinTiempo - 24 * 60 * 60 
+		end if 
+	loop 
 end function
 
-
-
-'Esta funcion se encarga de instanciar la impresora
-function printVoucher(VoucherFilter,report , aux_type,auxPDF )
-    
-	set fs 		= CreateObject("Scripting.FileSystemObject")
-	sFileName 	= "C:\util\pdf\" & auxPDF & ".pdf"
-	sFileName2 	= "C:\util\pdf\" & aux_type & VoucherFilter.NumeroDocumento & ".pdf"
-	if fs.FileExists(sFileName) then
-		fs.DeleteFile(sFileName)
-	end if
-	if fs.FileExists(sFileName2) then
-		fs.DeleteFile(sFileName2)
-	end if
-
-	set fs		= nothing
-
-	set Impresoras = NewDic( )
-	call RegistrarObjeto( Impresoras, "Bullzip PDF Printer", nil )
-	call PrintBO( VoucherFilter, report , Impresoras )
-
-	a = wait(3)
-	EstaPDF = false
-	set fs 		= CreateObject("Scripting.FileSystemObject")
-	sFileName 	= "C:\util\pdf\" & auxPDF & ".pdf"
-	sFileName2 	= "C:\util\pdf\" & aux_type & VoucherFilter.NumeroDocumento & ".pdf"
-
-	for b = 1 to 20
-		if fs.FileExists(sFileName) then
-			EstaPDF = true
-			sFileName2 = "C:\util\pdf\" & aux_type & VoucherFilter.NumeroDocumento & ".pdf"
-			fs.MoveFile sFileName, sFileName2
-			exit for
-		else
-			a = wait(3)
-		end if
-	next
-    if EstaPDF then
-		printVoucher = sFileName2
-	end if
+function ObtenerView()
+	set xView = NewCompoundView(Self, "UD_EMAIL", Self.Workspace, nil, true)
+	xView.AddJoin(NewJoinSpec(xView.ColumnFromPath("TIPO"), NewColumnSpec("TIPODIRECCIONELECTRONICA", "ID", ""), false))
+	xView.AddJoin(NewJoinSpec(xView.ColumnFromPath("SECTOR"), NewColumnSpec("ITEMTIPOCLASIFICADOR", "ID", ""), true))
+	xView.AddFilter(NewFilterSpec(xView.ColumnFromPath("BO_PLACE"), " = ",self.destinatario.enteasociado.direccioneselectronicas.id))
+	xView.AddFilter(NewFilterSpec(xView.ColumnFromPath("TIPO"), " = ", "D11F43B6-76A7-4BBE-9DA3-A5B7738824A1"))	  	' E-Mail para envío de Facturas de Venta.
+	xView.AddBOCol("TIPO").Caption						= " "
+	xView.AddBOCol("SECTOR").Caption					= " "
+	xView.AddColumn(NewColumnSpec("TIPODIRECCIONELECTRONICA", "TIPODIRECCIONELECTRONICA", "")).Caption	= "Tipo"
+	xView.AddBOCol("EMAIL").Caption						= "Email"
+	xView.AddBOCol("NOMBRECOMPLETO").Caption			= "Nombre y Apellido"
+	xView.AddColumn(NewColumnSpec("ITEMTIPOCLASIFICADOR", "NOMBRE", "")).Caption						= "Sector"
+	xView.AddBOCol("NOTA").Caption						= "Nota"
+	xView.AddOrderColumn(NewOrderSpec(xView.ColumnFromPath("NOMBRECOMPLETO"), true))
+	set ObtenerView = xView
 end function
 
-function wait(time)
-	startTime = timer
-	finishTime = startTime + time
-	do while finishTime > timer
-		if startTime > timer then 
-			finishTime = finishTime - 24 * 60 * 60 
-		end if
-	loop
+function ViewTROC()
+	set xViewOC = NewCompoundView(Self, "TRORDENCOMPRA", Self.Workspace, nil, true)
+	xViewOC.AddJoin(NewJoinSpec(xViewOC.ColumnFromPath("CENTROCOSTOS"), NewColumnSpec("CENTROCOSTOS", "ID", ""), false))
+	xViewOC.AddJoin(NewJoinSpec(xViewOC.ColumnFromPath("FLAG"), NewColumnSpec("FLAG", "ID", ""), false))
+	xViewOC.AddJoin(NewJoinSpec(xViewOC.ColumnFromPath("BOEXTENSION"), NewColumnSpec("UD_ORDENCOMPRA", "ID", ""), false))
+	xViewOC.AddFilter(NewFilterSpec(xViewOC.ColumnFromPath("ESTADO"), " = ", "C"))
+	xViewOC.AddFilter(NewFilterSpec(xViewOC.ColumnFromPath("FLAG"), " <> ", "{C10833F4-5E1E-47DA-803E-5FBF135BEA51}")) ' Anulado
+	xViewOC.AddFilter(NewFilterSpec(xViewOC.ColumnFromPath("FLAG"), " <> ", "{BC12C8D2-C060-4026-9447-A130A688E599}")) ' Facturada
+	xViewOC.AddFilter(NewFilterSpec(xViewOC.ColumnFromPath("FLAG"), " <> ", "{3F8FBBA5-200D-492F-9DE7-962ECAAEAA1C}")) ' Pendiente de Entrega
+	xViewOC.AddFilter(NewFilterSpec(xViewOC.ColumnFromPath("DESTINATARIO"), " = ", Self.Destinatario.ID))
+	xViewOC.AddBOCol("NOMBRE").Caption										= " "
+	xViewOC.AddBOCol("FLAG").Caption										= " "
+	xViewOC.AddBOCol("NOMBRE").Caption										= "Transacción"
+	xViewOC.AddColumn(NewColumnSpec("CENTROCOSTOS", "NOMBRE", "")).Caption	= "Centro Costos"
+	xViewOC.AddColumn(NewColumnSpec("FLAG", "DESCRIPCION", "")).Caption		= "Flag"
+	xViewOC.AddColumn(NewColumnSpec("UD_ORDENCOMPRA", "PAGOSEMANAL", "")).Caption		= "Pago Semanal"
+	xViewOC.AddBOCol("USUARIO").Caption					 					= "Usuario"
+	xViewOC.AddOrderColumn(NewOrderSpec(xViewOC.ColumnFromPath("NUMERODOCUMENTO"), true))
+	set ViewTROC = xViewOC
 end function
