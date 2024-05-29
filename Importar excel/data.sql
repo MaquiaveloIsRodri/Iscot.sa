@@ -1,41 +1,309 @@
-SELECT
-	TOP 50 ALIAS_0.ID ALIAS_0_ID,
-	ALIAS_0.COTIZACION ALIAS_0_COTIZACION,
-	ALIAS_1.NOMBRE ALIAS_1_NOMBRE,
-	Alias_0.Cotizacion * Alias_0.ValorTotal TotalMonedaBase_0,
-	(
-		select
-			CP.SALDO2_IMPORTE
-		from
-			v_CompromisoPago CP
-		where
-			CP.TRORIGINANTE_ID = alias_0.id
-			and CP.Nivel = 1
-	) SALDOCP_0,
-FROM
-	V_TREGRESOVALORES_ ALIAS_0
-	LEFT OUTER JOIN V_MONEDA_ ALIAS_1 ON ALIAS_0.MONEDABASE_ID = ALIAS_1.ID
-	LEFT OUTER JOIN V_FLAG_ ALIAS_2 ON ALIAS_0.FLAG_ID = ALIAS_2.ID
-	LEFT OUTER JOIN V_UNIDADOPERATIVA_ ALIAS_3 ON ALIAS_0.UNIDADOPERATIVA_ID = ALIAS_3.ID
-	LEFT OUTER JOIN V_TIPODISTRIBUCIONCENCOS_ ALIAS_4 ON ALIAS_0.TIPODISTRIBUCIONCENCOS_ID = ALIAS_4.ID
-	LEFT OUTER JOIN V_ITEMDISCCONTABLE_ ALIAS_5 ON ALIAS_0.DISCRIMINADORCONTABLE4_ID = ALIAS_5.ID
-	LEFT OUTER JOIN V_ITEMDISCCONTABLE_ ALIAS_6 ON ALIAS_0.DISCRIMINADORCONTABLE5_ID = ALIAS_6.ID
-	LEFT OUTER JOIN V_ITEMDISCCONTABLE_ ALIAS_7 ON ALIAS_0.DISCRIMINADORCONTABLE6_ID = ALIAS_7.ID
-	LEFT OUTER JOIN V_ITEMDISCCONTABLE_ ALIAS_8 ON ALIAS_0.DISCRIMINADORCONTABLE7_ID = ALIAS_8.ID
-	LEFT OUTER JOIN V_ITEMDISCCONTABLE_ ALIAS_9 ON ALIAS_0.DISCRIMINADORCONTABLE8_ID = ALIAS_9.ID
-	LEFT OUTER JOIN V_ITEMDISCCONTABLE_ ALIAS_10 ON ALIAS_0.DISCRIMINADORCONTABLE9_ID = ALIAS_10.ID
-	LEFT OUTER JOIN V_ITEMDISCCONTABLE_ ALIAS_11 ON ALIAS_0.DISCRIMINADORCONTABLE10_ID = ALIAS_11.ID
-	LEFT OUTER JOIN V_PUNTOVENTA_ ALIAS_12 ON ALIAS_0.PUNTOVENTA_ID = ALIAS_12.ID
-	LEFT OUTER JOIN V_TALONARIO_ ALIAS_13 ON ALIAS_0.TALONARIO_ID = ALIAS_13.ID
-	LEFT OUTER JOIN V_AREARESPONSABILIDAD_ ALIAS_14 ON ALIAS_0.AREARESP_ID = ALIAS_14.ID
-	LEFT OUTER JOIN V_CPRECIBO_ ALIAS_15 ON ALIAS_0.COMPROMISOPAGO_ID = ALIAS_15.ID
-	LEFT OUTER JOIN V_CENTROCOSTOS_ ALIAS_16 ON ALIAS_0.CENTROCOSTOS_ID = ALIAS_16.ID
-WHERE
-	ALIAS_0.BO_PLACE_ID = '{BD328BAE-89F8-45A9-AD85-FB8F60D28F1A}'
-	AND ALIAS_0.TIPOTRANSACCION_ID = '{222C4584-E8BB-45FE-BD71-C3EB0F39F977}'
-	AND (
-		ALIAS_0.UNIDADOPERATIVA_ID = '{1D28BE85-0586-4EDE-AF3C-FF0FD73FB3A2}'
-	)
-ORDER BY
-	ALIAS_0.FECHAACTUAL DESC,
-	ALIAS_0.NUMERODOCUMENTO DESC
+select
+    ISNULL(SUM(TotalMaestroEne), 0) as TotalMaestroEne,
+    ISNULL(SUM(TotalMaestroFeb), 0) as TotalMaestroFeb,
+    ISNULL(SUM(TotalMaestroMar), 0) as TotalMaestroMar,
+    ISNULL(SUM(TotalMaestroAbr), 0) as TotalMaestroAbr,
+    ISNULL(SUM(TotalMaestroMay), 0) as TotalMaestroMay,
+    ISNULL(SUM(TotalMaestroJun), 0) as TotalMaestroJun,
+    ISNULL(SUM(TotalMaestroJul), 0) as TotalMaestroJul,
+    ISNULL(SUM(TotalMaestroAgo), 0) as TotalMaestroAgo,
+    ISNULL(SUM(TotalMaestroSep), 0) as TotalMaestroSep,
+    ISNULL(SUM(TotalMaestroOct), 0) as TotalMaestroOct,
+    ISNULL(SUM(TotalMaestroNov), 0) as TotalMaestroNov,
+    ISNULL(SUM(TotalMaestroDic), 0) as TotalMaestroDic
+from
+    (
+        select
+            ISNULL(SUM(item.HABER2_IMPORTE - item.DEBE2_IMPORTE), 0) as TotalMaestroEne,
+            (
+                select
+                    ISNULL(
+                        SUM(item2.HABER2_IMPORTE - item2.DEBE2_IMPORTE),
+                        0
+                    )
+                from
+                    V_ITEMCONTABLE item2 with(nolock)
+                where
+                    item2.CENTROCOSTOS_ID = cc.ID
+                    and item2.ESTADOTR = 'C'
+                    and item2.TIPOTRANSACCION_ID = '{9BB81D09-5EF7-453F-8E29-BC5E33D4FFDA}'
+                    and CAST(SUBSTRING(item2.FECHAVENCIMIENTO, 5, 2) as Int) = 2
+                    and CAST(LEFT(item2.FECHAVENCIMIENTO, 4) as Int) = 2024
+                    and item2.REFERENCIA_ID IN (
+                        select
+                            ID
+                        from
+                            CUENTA with(nolock)
+                        where
+                            ACUMULA_ID = '{6CC63C25-1886-43DC-A11D-A8E81AE63C10}'
+                            and ACTIVESTATUS = 0
+                    )
+            ) as TotalMaestroFeb,
+            (
+                select
+                    ISNULL(
+                        SUM(item2.HABER2_IMPORTE - item2.DEBE2_IMPORTE),
+                        0
+                    )
+                from
+                    V_ITEMCONTABLE item2 with(nolock)
+                where
+                    item2.CENTROCOSTOS_ID = cc.ID
+                    and item2.ESTADOTR = 'C'
+                    and item2.TIPOTRANSACCION_ID = '{9BB81D09-5EF7-453F-8E29-BC5E33D4FFDA}'
+                    and CAST(SUBSTRING(item2.FECHAVENCIMIENTO, 5, 2) as Int) = 3
+                    and CAST(LEFT(item2.FECHAVENCIMIENTO, 4) as Int) = 2024
+                    and item2.REFERENCIA_ID IN (
+                        select
+                            ID
+                        from
+                            CUENTA with(nolock)
+                        where
+                            ACUMULA_ID = '{6CC63C25-1886-43DC-A11D-A8E81AE63C10}'
+                            and ACTIVESTATUS = 0
+                    )
+            ) as TotalMaestroMar,
+            (
+                select
+                    ISNULL(
+                        SUM(item2.HABER2_IMPORTE - item2.DEBE2_IMPORTE),
+                        0
+                    )
+                from
+                    V_ITEMCONTABLE item2 with(nolock)
+                where
+                    item2.CENTROCOSTOS_ID = cc.ID
+                    and item2.ESTADOTR = 'C'
+                    and item2.TIPOTRANSACCION_ID = '{9BB81D09-5EF7-453F-8E29-BC5E33D4FFDA}'
+                    and CAST(SUBSTRING(item2.FECHAVENCIMIENTO, 5, 2) as Int) = 4
+                    and CAST(LEFT(item2.FECHAVENCIMIENTO, 4) as Int) = 2024
+                    and item2.REFERENCIA_ID IN (
+                        select
+                            ID
+                        from
+                            CUENTA with(nolock)
+                        where
+                            ACUMULA_ID = '{6CC63C25-1886-43DC-A11D-A8E81AE63C10}'
+                            and ACTIVESTATUS = 0
+                    )
+            ) as TotalMaestroAbr,
+            (
+                select
+                    ISNULL(
+                        SUM(item2.HABER2_IMPORTE - item2.DEBE2_IMPORTE),
+                        0
+                    )
+                from
+                    V_ITEMCONTABLE item2 with(nolock)
+                where
+                    item2.CENTROCOSTOS_ID = cc.ID
+                    and item2.ESTADOTR = 'C'
+                    and item2.TIPOTRANSACCION_ID = '{9BB81D09-5EF7-453F-8E29-BC5E33D4FFDA}'
+                    and CAST(SUBSTRING(item2.FECHAVENCIMIENTO, 5, 2) as Int) = 5
+                    and CAST(LEFT(item2.FECHAVENCIMIENTO, 4) as Int) = 2024
+                    and item2.REFERENCIA_ID IN (
+                        select
+                            ID
+                        from
+                            CUENTA with(nolock)
+                        where
+                            ACUMULA_ID = '{6CC63C25-1886-43DC-A11D-A8E81AE63C10}'
+                            and ACTIVESTATUS = 0
+                    )
+            ) as TotalMaestroMay,
+            (
+                select
+                    ISNULL(
+                        SUM(item2.HABER2_IMPORTE - item2.DEBE2_IMPORTE),
+                        0
+                    )
+                from
+                    V_ITEMCONTABLE item2 with(nolock)
+                where
+                    item2.CENTROCOSTOS_ID = cc.ID
+                    and item2.ESTADOTR = 'C'
+                    and item2.TIPOTRANSACCION_ID = '{9BB81D09-5EF7-453F-8E29-BC5E33D4FFDA}'
+                    and CAST(SUBSTRING(item2.FECHAVENCIMIENTO, 5, 2) as Int) = 6
+                    and CAST(LEFT(item2.FECHAVENCIMIENTO, 4) as Int) = 2024
+                    and item2.REFERENCIA_ID IN (
+                        select
+                            ID
+                        from
+                            CUENTA with(nolock)
+                        where
+                            ACUMULA_ID = '{6CC63C25-1886-43DC-A11D-A8E81AE63C10}'
+                            and ACTIVESTATUS = 0
+                    )
+            ) as TotalMaestroJun,
+            (
+                select
+                    ISNULL(
+                        SUM(item2.HABER2_IMPORTE - item2.DEBE2_IMPORTE),
+                        0
+                    )
+                from
+                    V_ITEMCONTABLE item2 with(nolock)
+                where
+                    item2.CENTROCOSTOS_ID = cc.ID
+                    and item2.ESTADOTR = 'C'
+                    and item2.TIPOTRANSACCION_ID = '{9BB81D09-5EF7-453F-8E29-BC5E33D4FFDA}'
+                    and CAST(SUBSTRING(item2.FECHAVENCIMIENTO, 5, 2) as Int) = 7
+                    and CAST(LEFT(item2.FECHAVENCIMIENTO, 4) as Int) = 2024
+                    and item2.REFERENCIA_ID IN (
+                        select
+                            ID
+                        from
+                            CUENTA with(nolock)
+                        where
+                            ACUMULA_ID = '{6CC63C25-1886-43DC-A11D-A8E81AE63C10}'
+                            and ACTIVESTATUS = 0
+                    )
+            ) as TotalMaestroJul,
+            (
+                select
+                    ISNULL(
+                        SUM(item2.HABER2_IMPORTE - item2.DEBE2_IMPORTE),
+                        0
+                    )
+                from
+                    V_ITEMCONTABLE item2 with(nolock)
+                where
+                    item2.CENTROCOSTOS_ID = cc.ID
+                    and item2.ESTADOTR = 'C'
+                    and item2.TIPOTRANSACCION_ID = '{9BB81D09-5EF7-453F-8E29-BC5E33D4FFDA}'
+                    and CAST(SUBSTRING(item2.FECHAVENCIMIENTO, 5, 2) as Int) = 8
+                    and CAST(LEFT(item2.FECHAVENCIMIENTO, 4) as Int) = 2024
+                    and item2.REFERENCIA_ID IN (
+                        select
+                            ID
+                        from
+                            CUENTA with(nolock)
+                        where
+                            ACUMULA_ID = '{6CC63C25-1886-43DC-A11D-A8E81AE63C10}'
+                            and ACTIVESTATUS = 0
+                    )
+            ) as TotalMaestroAgo,
+            (
+                select
+                    ISNULL(
+                        SUM(item2.HABER2_IMPORTE - item2.DEBE2_IMPORTE),
+                        0
+                    )
+                from
+                    V_ITEMCONTABLE item2 with(nolock)
+                where
+                    item2.CENTROCOSTOS_ID = cc.ID
+                    and item2.ESTADOTR = 'C'
+                    and item2.TIPOTRANSACCION_ID = '{9BB81D09-5EF7-453F-8E29-BC5E33D4FFDA}'
+                    and CAST(SUBSTRING(item2.FECHAVENCIMIENTO, 5, 2) as Int) = 9
+                    and CAST(LEFT(item2.FECHAVENCIMIENTO, 4) as Int) = 2024
+                    and item2.REFERENCIA_ID IN (
+                        select
+                            ID
+                        from
+                            CUENTA with(nolock)
+                        where
+                            ACUMULA_ID = '{6CC63C25-1886-43DC-A11D-A8E81AE63C10}'
+                            and ACTIVESTATUS = 0
+                    )
+            ) as TotalMaestroSep,
+            (
+                select
+                    ISNULL(
+                        SUM(item2.HABER2_IMPORTE - item2.DEBE2_IMPORTE),
+                        0
+                    )
+                from
+                    V_ITEMCONTABLE item2 with(nolock)
+                where
+                    item2.CENTROCOSTOS_ID = cc.ID
+                    and item2.ESTADOTR = 'C'
+                    and item2.TIPOTRANSACCION_ID = '{9BB81D09-5EF7-453F-8E29-BC5E33D4FFDA}'
+                    and CAST(SUBSTRING(item2.FECHAVENCIMIENTO, 5, 2) as Int) = 10
+                    and CAST(LEFT(item2.FECHAVENCIMIENTO, 4) as Int) = 2024
+                    and item2.REFERENCIA_ID IN (
+                        select
+                            ID
+                        from
+                            CUENTA with(nolock)
+                        where
+                            ACUMULA_ID = '{6CC63C25-1886-43DC-A11D-A8E81AE63C10}'
+                            and ACTIVESTATUS = 0
+                    )
+            ) as TotalMaestroOct,
+            (
+                select
+                    ISNULL(
+                        SUM(item2.HABER2_IMPORTE - item2.DEBE2_IMPORTE),
+                        0
+                    )
+                from
+                    V_ITEMCONTABLE item2 with(nolock)
+                where
+                    item2.CENTROCOSTOS_ID = cc.ID
+                    and item2.ESTADOTR = 'C'
+                    and item2.TIPOTRANSACCION_ID = '{9BB81D09-5EF7-453F-8E29-BC5E33D4FFDA}'
+                    and CAST(SUBSTRING(item2.FECHAVENCIMIENTO, 5, 2) as Int) = 11
+                    and CAST(LEFT(item2.FECHAVENCIMIENTO, 4) as Int) = 2024
+                    and item2.REFERENCIA_ID IN (
+                        select
+                            ID
+                        from
+                            CUENTA with(nolock)
+                        where
+                            ACUMULA_ID = '{6CC63C25-1886-43DC-A11D-A8E81AE63C10}'
+                            and ACTIVESTATUS = 0
+                    )
+            ) as TotalMaestroNov,
+            (
+                select
+                    ISNULL(
+                        SUM(item2.HABER2_IMPORTE - item2.DEBE2_IMPORTE),
+                        0
+                    )
+                from
+                    V_ITEMCONTABLE item2 with(nolock)
+                where
+                    item2.CENTROCOSTOS_ID = cc.ID
+                    and item2.ESTADOTR = 'C'
+                    and item2.TIPOTRANSACCION_ID = '{9BB81D09-5EF7-453F-8E29-BC5E33D4FFDA}'
+                    and CAST(SUBSTRING(item2.FECHAVENCIMIENTO, 5, 2) as Int) = 12
+                    and CAST(LEFT(item2.FECHAVENCIMIENTO, 4) as Int) = 2024
+                    and item2.REFERENCIA_ID IN (
+                        select
+                            ID
+                        from
+                            CUENTA with(nolock)
+                        where
+                            ACUMULA_ID = '{6CC63C25-1886-43DC-A11D-A8E81AE63C10}'
+                            and ACTIVESTATUS = 0
+                    )
+            ) as TotalMaestroDic
+        from
+            V_ITEMCONTABLE item with(nolock)
+            inner join V_CUENTA cta with(nolock) on cta.ID = item.REFERENCIA_ID
+            inner join V_CENTROCOSTOS cc with(nolock) on cc.ID = item.CENTROCOSTOS_ID
+        where
+            item.ESTADOTR = 'C'
+            and item.TIPOTRANSACCION_ID = '{9BB81D09-5EF7-453F-8E29-BC5E33D4FFDA}'
+            and CAST(SUBSTRING(item.FECHAVENCIMIENTO, 5, 2) as Int) = 1and CAST(LEFT(item.FECHAVENCIMIENTO, 4) as Int) = 2024
+            and cta.ID in (
+                select
+                    ID
+                from
+                    V_CUENTA with(nolock)
+                where
+                    ACUMULA_ID = '{6CC63C25-1886-43DC-A11D-A8E81AE63C10}'
+                    and ACTIVESTATUS = 0
+            )
+            and cc.ID in (
+                '{B679CBCD-D7DA-43D1-B84B-4111023351A0}',
+                '{1BBD81D6-72F4-4C4E-BC01-2EB7A2EAA75E}',
+                '{64438C6B-DD17-456A-9E31-C8D95F983577}',
+                '{1970EBB4-4C79-4E76-AD88-33AA1CB005A2}'
+            )
+        group by
+            cc.ID,
+            cta.CODIGO,
+            cta.DESCRIPCION
+    ) Q

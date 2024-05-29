@@ -1,45 +1,26 @@
-SELECT
-    P.NOMBRE as Nombre,
-    cc.NOMBRE AS 'CENTROCOSTOS',
-    UCC.ANALISTARRHH_N,
-    SUBSTRING (P.FECHANACIMIENTO, 1, 8) AS 'FECHANACIMIENTO',
-    DATEDIFF (
-        YEAR,
-        SUBSTRING (P.FECHANACIMIENTO, 1, 8),
-        GETDATE ()
-    ) AS 'Cumple'
-FROM
-    EMPLEADO E
-    INNER JOIN PERSONAFISICA P ON E.ENTEASOCIADO_ID = P.ID
-    inner join CENTROCOSTOS CC ON CC.ID = E.CENTROCOSTOS_ID
-    inner join UD_CENTROCOSTOS UCC ON CC.BOEXTENSION_ID = UCC.ID
-WHERE
-    e.ACTIVESTATUS = 0
-    and MONTH (SUBSTRING (P.FECHANACIMIENTO, 1, 8)) = MONTH (GETDATE ())
-    and UCC.ANALISTARRHH_N = 'AVILA LUCAS DAVID'
-order by
-    3,
-    1
 select
-    dbo.ProperCase (
-        SUBSTRING (
-            E.DESCRIPCION,
-            CHARINDEX ('-', E.DESCRIPCION) + 1,
-            LEN (E.DESCRIPCION)
-        )
-    ) AS 'Empleado',
-    CC.nombre AS 'CENTROCOSTOS',
-    SUBSTRING (E.FECHAINGRESO, 7, 2) + '/' + SUBSTRING (E.FECHAINGRESO, 5, 2) + '/' + SUBSTRING (E.FECHAINGRESO, 1, 4) AS 'Fecha',
-    DATEDIFF (YEAR, e.FECHAINGRESO, GETDATE ()) AS 'Aniversario'
+    ISNULL (
+        SUM(item2.HABER2_IMPORTE - item2.DEBE2_IMPORTE),
+        0
+    )
 from
-    EMPLEADO AS E
-    INNER JOIN UD_EMPLEADO UDE ON E.BOEXTENSION_ID = UDE.ID
-    inner join CENTROCOSTOS CC ON CC.ID = E.CENTROCOSTOS_ID
-    inner join UD_CENTROCOSTOS UCC ON CC.BOEXTENSION_ID = UCC.ID
-WHERE
-    MONTH (E.FECHAINGRESO) = MONTH (GETDATE ())
-    and E.ACTIVESTATUS = 0
-    and UCC.ANALISTARRHH_ID = '{4F910D9E-F6E7-4B32-BB81-097F21AE27EB}'
-order by
-    3,
-    2
+    V_ITEMCONTABLE item2
+with
+    (nolock)
+where
+    item2.CENTROCOSTOS_ID = "{E7B5CE9A-34BA-4750-A27F-CA928DAB9613}"
+    and item2.ESTADOTR = 'C'
+    and item2.TIPOTRANSACCION_ID = '{9BB81D09-5EF7-453F-8E29-BC5E33D4FFDA}'
+    and CAST(SUBSTRING (item2.FECHAVENCIMIENTO, 5, 2) as Int) = 5
+    and CAST(LEFT (item2.FECHAVENCIMIENTO, 4) as Int) = 2024
+    and item2.REFERENCIA_ID IN (
+        select
+            ID
+        from
+            CUENTA
+        with
+            (nolock)
+        where
+            ACUMULA_ID = '{6CC63C25-1886-43DC-A11D-A8E81AE63C10}'
+            and ACTIVESTATUS = 0
+    )
